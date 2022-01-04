@@ -1,0 +1,9 @@
+# ninja log v5
+287	341	1641266408552328514	bin/hton_htons_ntohl_ntohs	e432d9975e5de174
+264	319	1641270634940367363	bin/inet_pton_inet_ntop	da7fbd211c70c391
+1	264	1641270634884367266	bin/CMakeFiles/inet_pton_inet_ntop.dir/inet_pton_inet_ntop.cpp.o	9173e686a0037c54
+1	286	1641266408496328328	bin/CMakeFiles/hton_htons_ntohl_ntohs.dir/hton_htons_ntohl_ntohs.cpp.o	629379d015c3b3a9
+30	52	1641260649039402898	bin/hton_htons_ntohl_ntohs_c	a46e589c5a74ac03
+0	30	1641260649015402845	bin/CMakeFiles/hton_htons_ntohl_ntohs_c.dir/hton_htons_ntohl_ntohs.c.o	1267c7ac8a502067
+0	180	1641274678417783363	bin/CMakeFiles/tcp_client.dir/tcp_client.cpp.o	e68cea8af847826e
+180	227	1641274678465783453	bin/tcp_client	66d6564b5c613230
