@@ -1,12 +1,12 @@
 //
 // Created by yjs on 2022/1/4.
 //
-
 #include <iostream>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <string>
+#include <cstring>
 
 using namespace std;
 
@@ -21,9 +21,9 @@ int main(){
 
     // addr.sin_addr.s_addr=INADDR_ANY ; 表示绑定的是统配地址
     inet_pton(AF_INET,"192.168.2.249",&addr.sin_addr.s_addr);
-    if (bind(lfd,(struct sockaddr *)&addr,sizeof(addr))!=0){
+    if (bind(lfd,(struct sockaddr *)&addr,sizeof(addr))<0){
         perror("bind error");
-        return 1;
+        exit(1);
     };
 
 
@@ -41,36 +41,39 @@ int main(){
     // address 获取的客户端IP和端口 IPV4 socket struct
     // address_len sizeof( struct socket sockaddr_in)
     // return 新的已连接套接字的文件描述符
-
-
-
-
-    struct sockaddr_in client_addr;
-    socklen_t len=sizeof (client_addr);
-    int client_fd=accept(lfd, (struct sockaddr *)&client_addr, &len);
+    struct sockaddr_in client_address{};
+    socklen_t len=sizeof (client_address);
+    int client_fd=accept(lfd, (struct sockaddr *)&client_address, &len);
     // 读写
-    while (true){
-        char buff[1024]="";
+    char ip[16]="";
+    inet_ntop(AF_INET, &client_address.sin_addr.s_addr,ip,16);
+    cout<< "new client connect . . . and ip is "<<ip<<" port is : "<<
+    ntohs(client_address.sin_port)
+    <<endl;
 
-        write(client_fd,"hello",5);
-        read(client_fd,buff, sizeof(buff));
+    char buff[1024]="";
+
+    while (true){
+        memset(buff,0, sizeof(buff));
+        read(STDIN_FILENO,buff,sizeof(buff));
+        if(string(buff)=="q\n"){
+            break;
+        }
+        write(client_fd,buff, sizeof(buff));
+        ssize_t n=read(client_fd,buff, sizeof(buff));
+        if (n==0){
+            // 如果read的返回值等于0 代表对方关闭
+            cout<< "client close . . ."<<endl;
+            break;
+        }
         cout<< buff<<endl;
         if(string(buff)=="q\n"){
             break;
         }
-
     }
-
     // 关闭
-
-
-
-
-
-
-
-
-
+    close(lfd);
+    close(client_fd);
     return 0;
 }
 
