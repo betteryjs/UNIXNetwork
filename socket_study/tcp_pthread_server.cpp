@@ -11,11 +11,11 @@
 #include <pthread.h>
 #include "wrap.h"
 
+
+
 using namespace std;
 
 // 多进程实现并发服务器
-
-
 void * client_callback(void *args);
 
 class client_infos{
@@ -42,10 +42,6 @@ public:
 };
 
 
-
-
-
-
 int main(int argc ,char ** argv){
 
     if (argc<2){
@@ -55,7 +51,15 @@ int main(int argc ,char ** argv){
 
     }
 
-    int lfd=tcp4bind(atoi(argv[1]),"192.168.2.249"); // 创建绑定 socket
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
+
+
+    int lfd=tcp4bind((short )atoi(argv[1]),"192.168.2.249"); // 创建绑定 socket
+//    int opt=1;
+//    setsockopt(lfd,SOL_SOCKET,SO_REUSEADDR,&opt, sizeof(opt));
+
     Listen(lfd,128);
     sockaddr_in client_address;
     socklen_t len= sizeof(client_address);
@@ -69,7 +73,7 @@ int main(int argc ,char ** argv){
         client_infos * client_info = new client_infos;
         client_info->set_cfd(cfd);
         client_info->set_client_address(client_address);
-        res=pthread_create(&pthread_id, nullptr,client_callback,client_info);
+        res=pthread_create(&pthread_id, &attr,client_callback,client_info);
         if (res<0){
 
             cerr << "pthread_create failed . . . " << endl;
@@ -80,8 +84,8 @@ int main(int argc ,char ** argv){
 }
 
 void * client_callback(void *args){
-    client_infos * info = reinterpret_cast<client_infos *>(args);
 
+    client_infos * info = reinterpret_cast<client_infos *>(args);
     char  ip[16]="";
     const  sockaddr_in client_address = info->get_client_address();
     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
@@ -101,10 +105,12 @@ void * client_callback(void *args){
             cout <<" client close . . ."<<endl;
             break;
         }else{
+
             cout << "client data : " << buff << endl;
             string  str(buff);
             str = "server data : " + str;
             write(info->get_cfd(), str.c_str(), str.size());
+
         }
     }
     close(info->get_cfd());
