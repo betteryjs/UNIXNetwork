@@ -9,9 +9,9 @@
 #include <unistd.h>
 #include <string>
 #include <cstring>
-#include <bits/sigaction.h>
-#include <csignal>
-#include <wait.h>
+//#include <bits/sigaction.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include "wrap.h"
 
 using namespace std;
@@ -34,6 +34,10 @@ void free_process(int sig){
 
 int main() {
     // 创建套接字 绑定
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set,SIGCHLD);
+    sigprocmask(SIG_BLOCK,&set, nullptr);
 
     int lfd = tcp4bind(8080, "192.168.2.249");
     // bind 绑定
@@ -107,6 +111,7 @@ int main() {
             act.sa_handler=free_process;
             sigemptyset(&act.sa_mask);
             sigaction(SIGCHLD,&act, nullptr);
+            sigprocmask(SIG_UNBLOCK,&set, nullptr);
 
         }
     }
