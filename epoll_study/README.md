@@ -29,5 +29,13 @@ EPOLL_CTL_MOD // 下树
 EPOLL_CTL_DEL //
         
 ```
+```c++
+struct epoll_event
+{
+uint32_t events;	// 需要监听的事件
+epoll_data_t data;	// 需要监听的文件描述符
+} 
+
+```
 
 

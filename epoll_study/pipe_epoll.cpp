@@ -26,15 +26,12 @@ int main(){
     else if(pid==0){
         // child
         close(fd[0]);
-        char* ch="a";
+        char ch='a';
+        char buff[5];
         while (true){
-            string str(ch);
-            for (int i = 0; i < 5; ++i) {
-                str+=str;
-            }
-            (*ch)++;
-            sleep(3);
-            write(fd[1],str.c_str(), str.size());
+            sleep(1);
+            memset(buff,ch++, sizeof(buff));
+            write(fd[1],buff, 5);
         }
     }else{
         close(fd[1]);
