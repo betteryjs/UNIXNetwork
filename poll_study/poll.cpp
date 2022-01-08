@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
                 if (client[index].fd < 0) {
                     client[index].fd = conn_fd; // 找到client[]中的空闲位置 存放accept返回的的conn_fd
                     map[index]=string (ip)+":"+ to_string(ntohs(client_address.sin_port));
+
                     break;
                 }
             }
