@@ -1,0 +1,73 @@
+//
+// Created by yjs on 2022/1/8.
+//
+
+#include <iostream>
+#include <arpa/inet.h>
+#include <cctype>
+#include "wrap.h"
+#include <sys/epoll.h>
+#include <string>
+#include <netinet/in.h>
+
+using namespace std;
+
+int main(){
+
+    int fd[2];
+    pid_t pid;
+    pipe(fd);
+    // 创建子进程
+    pid=fork();
+    if(pid<0){
+        perror("fork");
+        exit(1);
+    }
+    else if(pid==0){
+        // child
+        close(fd[0]);
+        char* ch="a";
+        while (true){
+            string str(ch);
+            for (int i = 0; i < 5; ++i) {
+                str+=str;
+            }
+            (*ch)++;
+            sleep(3);
+            write(fd[1],str.c_str(), str.size());
+        }
+    }else{
+        close(fd[1]);
+        // 创建树
+        int epfd=epoll_create(1);
+        epoll_event ev,evs[1];
+        ev.data.fd=fd[0];
+        ev.events=EPOLLIN;
+        epoll_ctl(epfd,EPOLL_CTL_ADD,fd[0],&ev);  // 上树
+        // 监听
+        while (true){
+
+            int n=epoll_wait(epfd,evs,1,-1);
+            if (n==1){
+                char buff[128]="";
+                ssize_t  ret=read(fd[0],buff, sizeof(buff));
+
+                if (ret<=0){
+                    close(fd[0]);
+                    epoll_ctl(epfd,EPOLL_CTL_DEL,fd[0],&ev); //  下树
+                    break;
+                }else{
+                    cout << buff<<endl;
+
+                }
+            }
+
+        }
+
+
+
+    }
+
+    return 0;
+}
+
