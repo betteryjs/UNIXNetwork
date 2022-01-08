@@ -201,6 +201,7 @@ ssize_t Readline(int fd, void *vptr, size_t maxlen)
 int tcp4bind(short port,const char *IP)
 {
     struct sockaddr_in serv_addr;
+
     int lfd = Socket(AF_INET,SOCK_STREAM,0);
     bzero(&serv_addr,sizeof(serv_addr));
     if(IP == nullptr){
