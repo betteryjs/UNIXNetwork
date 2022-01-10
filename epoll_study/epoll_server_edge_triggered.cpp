@@ -17,7 +17,7 @@ using namespace std;
 
 const short Port = 8000;
 const char *ServerIp = "192.168.2.249";
-const short EvsSize = 8000;
+const short EvsSize = 1024;
 const short BufferSize = 4;
 const short EpollWaitTimeout = -1;
 
@@ -46,7 +46,7 @@ int main() {
     while (true) {
 
         int n_ready = epoll_wait(epfd, evs, EvsSize, EpollWaitTimeout);
-        cout << "epoll wait ___________________" << endl;
+        cout << "epoll wait __________________________________________" << endl;
 
         if (n_ready < 0) {
 
@@ -57,7 +57,7 @@ int main() {
             continue;
         } else {
             // 监听到了数据 有文件描述符变化
-            for (int i = 0; i < n_ready; ++i) {
+            for (ssize_t i = 0; i < n_ready; ++i) {
 
                 // 判断lfd变化 并且是读事件变化
                 if (evs[i].data.fd == listen_fd && (evs[i].events & EPOLLIN)) {
@@ -69,20 +69,23 @@ int main() {
                     int client_fd = Accept(evs[i].data.fd, (sockaddr *) &client_address, &client_len);
 
 
-                    // print ip and port
-                    char ip[INET_ADDRSTRLEN] = "";
+                    // save client ip:port
+
+                    char ip[INET_ADDRSTRLEN];
                     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                     cout << "new client connect . . . and ip is " << ip << " port is : " <<
-                         ntohs(client_address.sin_port) << endl;
-
-
-                    // save client ip:port
+                                                  ntohs(client_address.sin_port) << endl;
                     map[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
+                    memset(ip,0, sizeof(ip));
+
+
 
                     // 设置cfd为非阻塞
-                    int flag=fcntl(client_fd,F_GETFL);
-                    flag|=O_NONBLOCK;
-                    fcntl(client_fd,F_SETFL,flag);
+                    int flag = fcntl(client_fd, F_GETFL);
+                    flag |= O_NONBLOCK;
+                    fcntl(client_fd, F_SETFL, flag);
+
+
 
                     // 将 client_fd  上树
                     ev.data.fd = client_fd;
@@ -92,28 +95,42 @@ int main() {
 
                 } else if (evs[i].events & EPOLLIN) {  // cfd变化 并且是读事件变化
                     while (true) {
+
+
                         ssize_t n;
                         char buffer[BufferSize];
-                        memset(buffer, 0, sizeof(buffer));
                         // 如果读一个缓冲区 缓冲区没有数据 如果是带阻塞 就阻塞等待
-                        // 如果是非阻塞 返回值是-1 并将erron设置为 EINTR
-                        n = Read(evs[i].data.fd, buffer, BufferSize);
-                        if (n< 0) {
+                        // 如果是非阻塞 返回值是-1 并将 erron 设置为 EINTR
+                        n = read(evs[i].data.fd, buffer, BufferSize);
+                        if (n < 0) {
+
+                            // 如果缓冲区读干净了 break 继续监听
+                            if (errno == EAGAIN) {
+
+                                break;
+
+                            }
 
                             perror("read error");
+                            close(evs[i].data.fd);
                             epoll_ctl(epfd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
+
+                            break;
 
                         } else if (n == 0) {
 
                             cout << "client [ " << map[evs[i].data.fd] << " ] aborted connection" << endl;
+                            close(evs[i].data.fd);
                             epoll_ctl(epfd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
-
+                            break;
                         } else {
 
-                            cout << "client " << map[evs[i].data.fd] << " data : " << buffer << endl;
+                            cout << "client " << map[evs[i].data.fd ]<< " data : " << buffer << endl;
                             string str(buffer);
                             str = "server data : " + str;
                             Write(evs[i].data.fd, str.c_str(), str.size());
+                            memset(buffer, 0, sizeof(buffer));
+
 
                         }
                     }
