@@ -4,7 +4,6 @@
 
 #include <iostream>
 #include <arpa/inet.h>
-#include <cctype>
 #include "wrap.h"
 #include <sys/epoll.h>
 #include <string>
@@ -46,7 +45,6 @@ int main(){
     // while监听
     while (true){
 
-
         int n_ready= epoll_wait(epfd,evs,EvsSize,EpollWaitTimeout);
 
         if (n_ready<0){
@@ -59,18 +57,23 @@ int main(){
         }else{
             // 监听到了数据 有文件描述符变化
             for (int i = 0; i < n_ready; ++i) {
+
                 // 判断lfd变化 并且是读事件变化
                 if (evs[i].data.fd==listen_fd && (evs[i].events &EPOLLIN)){
                         // accept 提取cfd
+
+
                         sockaddr_in client_address;
                         socklen_t  client_len= sizeof(client_address);
                         int client_fd= Accept(evs[i].data.fd,( sockaddr *)&client_address ,&client_len);
+
 
                         // print ip and port
                         char ip[INET_ADDRSTRLEN] = "";
                         inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                         cout << "new client connect . . . and ip is " << ip << " port is : " <<
                              ntohs(client_address.sin_port) << endl;
+
 
                         // save client ip:port
                         map[client_fd]=string (ip)+":"+ to_string(ntohs(client_address.sin_port));
