@@ -18,7 +18,7 @@ using namespace std;
 const short Port = 8000;
 const char *ServerIp = "192.168.2.249";
 const short EvsSize = 1024;
-const short BufferSize = 4;
+const short ReadBufferSize = 4;
 const short EpollWaitTimeout = -1;
 
 
@@ -76,6 +76,7 @@ int main() {
                     cout << "new client connect . . . and ip is " << ip << " port is : " <<
                                                   ntohs(client_address.sin_port) << endl;
                     map[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
+
                     memset(ip,0, sizeof(ip));
 
 
@@ -98,10 +99,10 @@ int main() {
 
 
                         ssize_t n;
-                        char buffer[BufferSize];
+                        char buffer[ReadBufferSize];
                         // 如果读一个缓冲区 缓冲区没有数据 如果是带阻塞 就阻塞等待
                         // 如果是非阻塞 返回值是-1 并将 erron 设置为 EINTR
-                        n = read(evs[i].data.fd, buffer, BufferSize);
+                        n = read(evs[i].data.fd, buffer, ReadBufferSize);
                         if (n < 0) {
 
                             // 如果缓冲区读干净了 break 继续监听
@@ -129,6 +130,7 @@ int main() {
                             string str(buffer);
                             str = "server data : " + str;
                             Write(evs[i].data.fd, str.c_str(), str.size());
+                            // 没有使用buffer数据 所以需要
                             memset(buffer, 0, sizeof(buffer));
 
 
