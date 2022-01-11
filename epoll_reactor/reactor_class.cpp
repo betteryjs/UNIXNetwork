@@ -10,6 +10,10 @@
 #include <unordered_map>
 #include <fcntl.h>
 
+
+
+
+// config
 const short _BUF_LEN_ = 1024;
 //const short _EVENT_SIZE_ = 1024;
 const int _ServerPort_ = 8000;
@@ -34,18 +38,17 @@ private:
 public:
     Rector()=default;
     ~Rector(){};
-
     void listen_bind();
     void  epoll_init();
-    void initAccept(const int &);
-    int readData(const int&  i);
-    void senddata(const int & i) ;
+    void init_accept(const int &);
+    ssize_t read_data(const int&  i);
+    void send_data(const int & i) ;
     int Run() ;
 
 };
 
 //发送数据
-void Rector::senddata(const int & i) {
+void Rector::send_data(const int & i) {
     cout << "client " << map[evs[i].data.fd ]<< " data : " << buffer << endl;
     string str(buffer);
     str = "server data : " + str;
@@ -55,7 +58,7 @@ void Rector::senddata(const int & i) {
 }
 
 //读数据
-int Rector::readData(const int&  i) {
+ssize_t Rector::read_data(const int&  i) {
 
     ssize_t n;
     // 如果读一个缓冲区 缓冲区没有数据 如果是带阻塞 就阻塞等待
@@ -68,8 +71,9 @@ int Rector::readData(const int&  i) {
         cout << "client [ " << map[evs[i].data.fd] << " ] aborted connection" << endl;
         close(evs[i].data.fd);
         epoll_ctl(epoll_fd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
-        return n;
     }
+    return n;
+
 }
 
 void Rector::listen_bind(){
@@ -103,7 +107,7 @@ void  Rector::epoll_init( ){
 
 
 //新连接处理
-void Rector::initAccept(const int &i ) {
+void Rector::init_accept(const int &i ) {
     cout << "epoll_fd = "<<epoll_fd<<endl;
 
     sockaddr_in client_address;
@@ -166,16 +170,16 @@ int Rector::Run() {
             for (ssize_t i = 0; i < n_ready; i++) {
 
                 if (evs[i].data.fd == listen_fd && (evs[i].events & EPOLLIN)) {
-                    Rector::initAccept(i);
+                    Rector::init_accept(i);
 
 
                 }else if (evs[i].events & EPOLLIN){
                     while (true){
-                        int n=Rector::readData(i);
+                        ssize_t n=Rector::read_data(i);
                         if (n<=0){
                             break;
                         }else{
-                            Rector::senddata(i);
+                            Rector::send_data(i);
                         }
 
                     }
