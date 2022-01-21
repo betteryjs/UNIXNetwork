@@ -4,7 +4,7 @@
 #target_link_libraries(thread_pool_class pthread)
 
 
-add_executable(test_pools thread_pools.cpp thread_pool_yjs.cpp)
+add_executable(test_pools  test_pool.cpp)
 
 target_link_libraries(test_pools pthread)
 

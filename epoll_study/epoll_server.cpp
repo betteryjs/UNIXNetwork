@@ -14,8 +14,8 @@
 using namespace std;
 
 
-const short Port=8000;
-const char * ServerIp="192.168.2.249";
+const short Port=8001;
+const char * ServerIp="127.0.0.1";
 const short EvsSize=8000;
 const short BufferSize=1500;
 const short EpollWaitTimeout=-1;
@@ -23,6 +23,7 @@ const short EpollWaitTimeout=-1;
 
 
 int main(){
+
 
     // 创建套结字
     int listen_fd;
@@ -70,6 +71,7 @@ int main(){
 
                         // print ip and port
                         char ip[INET_ADDRSTRLEN] = "";
+//                        char *ip;
                         inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                         cout << "new client connect . . . and ip is " << ip << " port is : " <<
                              ntohs(client_address.sin_port) << endl;
@@ -81,6 +83,7 @@ int main(){
                         ev.data.fd=client_fd;
                         ev.events=EPOLLIN;
                         epoll_ctl(epfd,EPOLL_CTL_ADD,client_fd,&ev);
+
 
 
                 }else if(evs[i].events & EPOLLIN){  // cfd变化 并且是读事件变化
