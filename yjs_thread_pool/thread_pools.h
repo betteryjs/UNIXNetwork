@@ -76,10 +76,8 @@ namespace std{
 
         }
 
-
         template<class F, class... Args>
         auto commit(F&& f, Args&&... args) ->future<decltype(f(args...))>{
-
             if(stop){
                 throw runtime_error("commit on ThreadPool is stopped.");
 
@@ -108,18 +106,5 @@ namespace std{
         //线程数量
         int thread_count() { return _pools.size(); }
     };
-
-
-
-
-
 }
-
-
-
-
-
-
-
-
 #endif //UNIXNETWORKTEST_TEST_POOLS_H

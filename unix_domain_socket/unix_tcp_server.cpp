@@ -15,7 +15,7 @@ using namespace std;
 
 const int BUFF_SIZE = 1500;
 
-const char sock_server_path[64] = "sock.server";
+const char sock_server_path[] = "sock.server";
 
 int main() {
 
