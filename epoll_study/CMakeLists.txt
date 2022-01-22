@@ -8,7 +8,6 @@ add_executable(pipe_epoll pipe_epoll.cpp)
 
 add_executable(epoll_server_edge_triggered_thread_pool
         epoll_server_edge_triggered_thread_pool.cpp
-        thread_pool_yjs.cpp
         wrap.cpp
 
         )
