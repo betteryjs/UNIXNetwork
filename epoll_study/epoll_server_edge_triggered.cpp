@@ -14,10 +14,10 @@
 using namespace std;
 
 
-const int ServePort = 8001;
-const char *ServerIp = "127.0.0.1";
+const int ServePort = 8000;
+const char *ServerIp = "0.0.0.0";
 const int EpollEvsSize = 1024;
-const short ReadBufferSize = 4;
+const short ReadBufferSize = 1500;
 const short EpollWaitTimeout = -1;
 
 
