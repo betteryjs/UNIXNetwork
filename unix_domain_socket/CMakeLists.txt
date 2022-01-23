@@ -1,2 +1,0 @@
-add_executable(unix_tcp_server unix_tcp_server.cpp)
-add_executable(unix_tcp_client unix_tcp_client.cpp)

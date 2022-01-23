@@ -1,3 +1,0 @@
-add_executable(hton_htons_ntohl_ntohs hton_htons_ntohl_ntohs.cpp)
-add_executable(hton_htons_ntohl_ntohs_c hton_htons_ntohl_ntohs.c)
-add_executable(inet_pton_inet_ntop inet_pton_inet_ntop.cpp)
