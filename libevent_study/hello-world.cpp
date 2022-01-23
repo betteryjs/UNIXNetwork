@@ -84,10 +84,18 @@ int main(int argc, char **argv)
         return 1;
 	}
 
+    // 循环监听
+
 	event_base_dispatch(base);
 
+    // 释放链接监听器
+
 	evconnlistener_free(listener);
+    // 释放信号节点
 	event_free(signal_event);
+
+    // 释放base节点
+
 	event_base_free(base);
 
 	printf("done\n");
@@ -99,16 +107,20 @@ listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
     struct sockaddr *sa, int socklen, void *user_data)
 {
     event_base *base =reinterpret_cast<event_base *>(user_data);
-    bufferevent *bev;
-
-	bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    // 将fd上树
+    // 新建一个 buffer_event 节点
+    bufferevent * bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 	if (!bev) {
-		fprintf(stderr, "Error constructing bufferevent!");
-		event_base_loopbreak(base);
+        cerr<< "Error constructing bufferevent!"<<endl;
+
+        event_base_loopbreak(base);
 		return;
 	}
-	bufferevent_setcb(bev, NULL, conn_writecb, conn_eventcb, NULL);
+    // 设置回调
+	bufferevent_setcb(bev, nullptr, conn_writecb, conn_eventcb, nullptr);
+    // 设置写事件使能
 	bufferevent_enable(bev, EV_WRITE);
+    // 设置读事件非使能
 	bufferevent_disable(bev, EV_READ);
 
 	bufferevent_write(bev, MESSAGE, strlen(MESSAGE));
@@ -144,5 +156,8 @@ signal_cb(evutil_socket_t sig, short events, void *user_data)
     event_base *base =reinterpret_cast<event_base *>(user_data);
     timeval delay = { 2, 0 };
 	printf("Caught an interrupt signal; exiting cleanly in two seconds.\n");
+
+    // 退出循环监听
+
 	event_base_loopexit(base, &delay);
 }
