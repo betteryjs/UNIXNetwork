@@ -6,11 +6,11 @@
   Where possible, it exits cleanly in response to a SIGINT (ctrl-c).
 */
 
-
-#include <string.h>
-#include <errno.h>
-#include <stdio.h>
-#include <signal.h>
+#include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <cstdio>
+#include <csignal>
 #ifndef _WIN32
 #include <netinet/in.h>
 # ifdef _XOPEN_SOURCE_EXTENDED
@@ -25,9 +25,14 @@
 #include <event2/util.h>
 #include <event2/event.h>
 
-static const char MESSAGE[] = "Hello, World!\n";
 
+using namespace std;
+
+
+static const char MESSAGE[] = "Hello, World!\n";
 static const int PORT = 8000;
+
+
 
 static void listener_cb(struct evconnlistener *, evutil_socket_t,
     struct sockaddr *, int socklen, void *);
@@ -37,40 +42,46 @@ static void signal_cb(evutil_socket_t, short, void *);
 
 int main(int argc, char **argv)
 {
-	struct event_base *base;
 	struct evconnlistener *listener;
 	struct event *signal_event;
 
-	struct sockaddr_in sin = {0};
 #ifdef _WIN32
 	WSADATA wsa_data;
 	WSAStartup(0x0201, &wsa_data);
 #endif
 
-	base = event_base_new();
+    event_base * base = event_base_new();
 	if (!base) {
-		fprintf(stderr, "Could not initialize libevent!\n");
+        cerr<< "Could not initialize libevent!"<<endl;
 		return 1;
 	}
 
+    sockaddr_in sin{};
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(PORT);
 
+    // 创建链接监听器
+
 	listener = evconnlistener_new_bind(base, listener_cb, (void *)base,
 	    LEV_OPT_REUSEABLE|LEV_OPT_CLOSE_ON_FREE, -1,
-	    (struct sockaddr*)&sin,
+	    (sockaddr*)&sin,
 	    sizeof(sin));
 
 	if (!listener) {
-		fprintf(stderr, "Could not create a listener!\n");
-		return 1;
+        cerr<< "Could not create a listener!"<<endl;
+        return 1;
 	}
 
-	signal_event = evsignal_new(base, SIGINT, signal_cb, (void *)base);
 
-	if (!signal_event || event_add(signal_event, NULL)<0) {
-		fprintf(stderr, "Could not create/add a signal event!\n");
-		return 1;
+    // 创建信号触发的节点
+
+	signal_event = evsignal_new(base, SIGINT, signal_cb, (void *)base); // SIGINT == ctrl + c
+
+    // 将信号的节点上树
+
+	if (!signal_event || event_add(signal_event, nullptr)<0) {
+        cerr<< "Could not create/add a signal event!"<<endl;
+        return 1;
 	}
 
 	event_base_dispatch(base);
@@ -87,8 +98,8 @@ static void
 listener_cb(struct evconnlistener *listener, evutil_socket_t fd,
     struct sockaddr *sa, int socklen, void *user_data)
 {
-	struct event_base *base = user_data;
-	struct bufferevent *bev;
+    event_base *base =reinterpret_cast<event_base *>(user_data);
+    bufferevent *bev;
 
 	bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
 	if (!bev) {
@@ -130,10 +141,8 @@ conn_eventcb(struct bufferevent *bev, short events, void *user_data)
 static void
 signal_cb(evutil_socket_t sig, short events, void *user_data)
 {
-	struct event_base *base = user_data;
-	struct timeval delay = { 2, 0 };
-
+    event_base *base =reinterpret_cast<event_base *>(user_data);
+    timeval delay = { 2, 0 };
 	printf("Caught an interrupt signal; exiting cleanly in two seconds.\n");
-
 	event_base_loopexit(base, &delay);
 }

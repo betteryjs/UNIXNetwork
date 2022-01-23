@@ -1,4 +1,4 @@
-add_executable(hello-world hello-world.c)
+add_executable(hello-world hello-world.cpp)
 add_executable(demo demo.c)
 add_executable(libevent_tcp_server libevent_tcp_server.cpp wrap.cpp)
 add_executable(bufferevent_server bufferevent_server.cpp)
