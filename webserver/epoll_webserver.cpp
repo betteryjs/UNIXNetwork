@@ -2,12 +2,17 @@
 // Created by yjs on 2022/1/23.
 //
 #include "wrap.h"
+#include <algorithm>
 #include <fcntl.h>
+#include <filesystem>
 #include <iostream>
-#include <sys/epoll.h>
-#include <unordered_map>
-#include <unordered_set>
 #include <regex>
+#include <sys/epoll.h>
+#include <unistd.h>
+#include <unordered_map>
+#include <fstream>
+
+namespace fs = std::filesystem;
 
 
 using namespace std;
@@ -18,14 +23,25 @@ static const char SERVER_IP[] = "0.0.0.0";
 static const int EpollEvsSize = 1024;
 static const short EpollWaitTimeout = -1;
 static const short ReadBufferSize = 1500;
-
-static void read_client_requests(int *, epoll_event *);
-vector<string> split(const string &, const string &);
-
 unordered_map<int, string> map_port;
+
+/// show funcs
+static void read_client_requests(int *, epoll_event *);
+static void send_http_headers(int &, const int &, const string &, const string &, const int &);
+static int send_file_requests(int, int *, epoll_event *, const string &);
+
+static vector<string> split(const string &, const string &);
 
 
 int main() {
+
+
+    // 获取当前目录的工作路径
+    fs::path pwd_path = fs::current_path();
+    pwd_path /= "web-http";
+    // 切换目录
+    chdir(pwd_path.string().c_str());
+
 
     // 创建套接字
     int listen_fd = tcp4bind(SERVER_PORT, SERVER_IP);
@@ -109,13 +125,13 @@ int main() {
 
 
     // close
-
-
+    //    close(epoll_fd);
+    //    close(listen_fd);
     return 0;
 }
 
 
-vector<string> split(const string &str, const string &delim) {//将分割后的子字符串存储在vector中
+static vector<string> split(const string &str, const string &delim) {//将分割后的子字符串存储在vector中
     vector<string> res;
     if (str.empty()) return res;
     string strs = str + delim;//*****扩展字符串以方便检索最后一个分隔出的字符串
@@ -132,6 +148,7 @@ vector<string> split(const string &str, const string &delim) {//将分割后的�
     }
     return res;
 }
+
 static void read_client_requests(int *epoll_fd, epoll_event *ev) {
 
     // 读取请求 (先读取一行，再把其它行读取扔掉)
@@ -157,13 +174,13 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
     cout << "[" << buffer << "]" << endl;
     ssize_t ret = 0;
 
-    while ((ret = Readline(ev->data.fd, TmpBuffer, sizeof(TmpBuffer))) > 0) {
+    while ((ret = Readline(ev->data.fd, TmpBuffer, sizeof(TmpBuffer))) > 0)
         ;
-    }
-    // [GET / HTTP/1.1]
+
     // 解析请求
 
     // Regex
+
     //    std::string method, path, http_version;
     //    string pattern{"(get|post)\\s+(.*+)\\s+([[:alpha:]]+.*+)\n?]"};
     //    // [GET / HTTP/1.1]
@@ -177,7 +194,6 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
 
 
     // find
-    cout << "find ..... ......." << endl;
     string request_head1(buffer);
     vector<string> res = split(request_head1, " ");
     string method, path, http_version;
@@ -187,8 +203,102 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
 
 
     // 判断是否为GET 请求
+    transform(method.begin(), method.end(), method.begin(), ::tolower);
+    if (method == "get") {
+        string string_file = path.substr(1);
+        // 判断请求的文件在不在
+        //        fs::path dir(string_file);
+        if (string_file.empty()) {
+            // 127.0.0.1:8000/ 没有请求的文件 默认请求当前目录
+            cout << "path [ "
+                 << "/"
+                 << " ] exists " << endl;
+            string_file = "./";
+
+
+        } else if (fs::exists(string_file)) {
+            cout << "path [ " << string_file << " ] exists " << endl;
+            if (fs::is_directory(string_file)) {
+                // 是一个目录
+
+                cout << "is a directory " << endl;
+
+
+            } else {
+                // 是一个文件
+
+                cout << "is a file " << endl;
+                // 先发送报头 （状态行 消息头）
+                // 发送文件
+            }
+
+
+        } else {
+            cout << "path [ " << string_file << " ] not exists " << endl;
+            // 发送 error.html
+        }
+    }
+
+
     // 得到web请求的路径
     // 判读文件是否存在 如果存在(普通文件 目录)
 
     // 不存在发送 error.html
+}
+
+
+static void send_http_headers(int &cfd, const int &status_code, const string &info, const string &file_type, const int &length) {
+
+    // 发送状态行
+    string buffer = "HTTP/1.1 " + to_string(status_code) + " " + info + "\r\n";
+
+
+    send(cfd, buffer.c_str(), buffer.size(), 0);
+
+    // 发送消息头
+    buffer.clear();
+    buffer = "Content-Type:" + file_type + "\r\n";
+    send(cfd, buffer.c_str(), buffer.size(), 0);
+
+    if (length > 0) {
+        // 发送长度
+        buffer.clear();
+        buffer = "Content-Length:" + to_string(length) + "\r\n";
+        send(cfd, buffer.c_str(), buffer.size(), 0);
+    }
+    // 发送空行
+    send(cfd, "\r\n", 2, 0);
+}
+
+
+static int send_file_requests(int cfd, int *epoll_fd, epoll_event *ev, const string &file_path) {
+
+    fstream files;
+    files.open(file_path, ios_base::in);
+    if (!files) {
+
+        cerr << "unable to open file" << endl;
+        return 1;
+    }
+    string file_count;
+    int ch;
+    while ((ch = files.get()) != EOF) {
+
+        file_count += ch;
+    }
+    send(cfd, file_count.c_str(), file_count.size(), 0);
+
+
+    files.close();
+    // 关闭cfd 下树
+
+
+    //对端关闭了连接，从epollfd上移除clientfd
+
+    epoll_ctl(*epoll_fd, EPOLL_CTL_DEL, ev->data.fd, ev);
+    close(ev->data.fd);
+    close(cfd);
+
+
+    return 0;
 }
