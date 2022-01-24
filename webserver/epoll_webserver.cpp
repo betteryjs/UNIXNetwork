@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sys/epoll.h>
 #include <unordered_map>
+#include <unordered_set>
+#include <regex>
 
 
 using namespace std;
@@ -18,8 +20,9 @@ static const short EpollWaitTimeout = -1;
 static const short ReadBufferSize = 1500;
 
 static void read_client_requests(int *, epoll_event *);
+vector<string> split(const string &, const string &);
 
-unordered_map<int, string> map;
+unordered_map<int, string> map_port;
 
 
 int main() {
@@ -80,7 +83,7 @@ int main() {
                     char ip[INET_ADDRSTRLEN] = "";
                     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                     cout << "new client connect . . . and ip is " << ip << " port is : " << ntohs(client_address.sin_port) << endl;
-                    map[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
+                    map_port[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
 
 
                     // 设置cfd为非阻塞
@@ -111,6 +114,24 @@ int main() {
     return 0;
 }
 
+
+vector<string> split(const string &str, const string &delim) {//将分割后的子字符串存储在vector中
+    vector<string> res;
+    if (str.empty()) return res;
+    string strs = str + delim;//*****扩展字符串以方便检索最后一个分隔出的字符串
+    size_t pos;
+    size_t size = strs.size();
+
+    for (int i = 0; i < size; ++i) {
+        pos = strs.find(delim, i);             //pos为分隔符第一次出现的位置，从i到pos之前的字符串是分隔出来的字符串
+        if (pos < size) {                      //如果查找到，如果没有查找到分隔符，pos为string::npos
+            string s = strs.substr(i, pos - i);//*****从i开始长度为pos-i的子字符串
+            res.push_back(s);                  //两个连续空格之间切割出的字符串为空字符串，这里没有判断s是否为空，所以最后的结果中有空字符的输出，
+            i = pos + delim.size() - 1;
+        }
+    }
+    return res;
+}
 static void read_client_requests(int *epoll_fd, epoll_event *ev) {
 
     // 读取请求 (先读取一行，再把其它行读取扔掉)
@@ -127,7 +148,7 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
         close(ev->data.fd);
         return;
     } else if (n == 0) {
-        cout << "client [ " << map[ev->data.fd] << " ] aborted connection" << endl;
+        cout << "client [ " << map_port[ev->data.fd] << " ] aborted connection" << endl;
         epoll_ctl(*epoll_fd, EPOLL_CTL_DEL, ev->data.fd, ev);
         close(ev->data.fd);
         return;
@@ -139,16 +160,32 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
     while ((ret = Readline(ev->data.fd, TmpBuffer, sizeof(TmpBuffer))) > 0) {
         ;
     }
-    cout << "read ok " << endl;
-
-    //        cout << "client " << map[ev->data.fd] << " data : " << buffer << endl;
-    //        string str(buffer);
-    //        str = "server data : " + str;
-    //        Write(ev->data.fd, str.c_str(), str.size());
-    //        // 没有使用buffer数据 所以需要memset()
-    //        memset(buffer, 0, sizeof(buffer));
-
+    // [GET / HTTP/1.1]
     // 解析请求
+
+    // Regex
+    //    std::string method, path, http_version;
+    //    string pattern{"(get|post)\\s+(.*+)\\s+([[:alpha:]]+.*+)\n?]"};
+    //    // [GET / HTTP/1.1]
+    //    regex reg(pattern,regex::icase);
+    //    string request_head1(buffer);
+    //    for (sregex_iterator iterator(request_head1.begin(),request_head1.end(),reg),end_it;iterator!=end_it;++iterator) {
+    //        method=iterator->str(1);
+    //        path=iterator->str(2);
+    //        http_version=iterator->str(3);
+    //    }
+
+
+    // find
+    cout << "find ..... ......." << endl;
+    string request_head1(buffer);
+    vector<string> res = split(request_head1, " ");
+    string method, path, http_version;
+    method = res[0];
+    path = res[1];
+    http_version = res[2];
+
+
     // 判断是否为GET 请求
     // 得到web请求的路径
     // 判读文件是否存在 如果存在(普通文件 目录)
