@@ -2,6 +2,7 @@
 // Created by yjs on 2022/1/23.
 //
 #include "wrap.h"
+#include "pub.h"
 #include <algorithm>
 #include <fcntl.h>
 #include <filesystem>
@@ -11,9 +12,9 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <fstream>
+#include <sys/stat.h>
 
 namespace fs = std::filesystem;
-
 
 using namespace std;
 
@@ -23,12 +24,14 @@ static const char SERVER_IP[] = "0.0.0.0";
 static const int EpollEvsSize = 1024;
 static const short EpollWaitTimeout = -1;
 static const short ReadBufferSize = 1500;
+extern std::string UrlDecode(const std::string &);
+
 unordered_map<int, string> map_port;
 
 /// show funcs
 static void read_client_requests(int *, epoll_event *);
-static void send_http_headers(int &, const int &, const string &, const string &, const int &);
-static int send_file_requests(int, int *, epoll_event *, const string &);
+static void send_http_headers(int, const int &, const string &, const string &, const int &);
+static int send_file_requests(int, int *, epoll_event *, const string &, const bool &);
 
 static vector<string> split(const string &, const string &);
 
@@ -40,8 +43,8 @@ int main() {
     fs::path pwd_path = fs::current_path();
     pwd_path /= "web-http";
     // 切换目录
-    chdir(pwd_path.string().c_str());
 
+    chdir(pwd_path.string().c_str());
 
     // 创建套接字
     int listen_fd = tcp4bind(SERVER_PORT, SERVER_IP);
@@ -73,7 +76,6 @@ int main() {
     while (true) {
 
         int n_ready = epoll_wait(epoll_fd, evs, EpollEvsSize, EpollWaitTimeout);
-
         if (n_ready < 0) {
             //被信号中断
             if (errno == EINTR)
@@ -100,7 +102,6 @@ int main() {
                     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                     cout << "new client connect . . . and ip is " << ip << " port is : " << ntohs(client_address.sin_port) << endl;
                     map_port[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
-
 
                     // 设置cfd为非阻塞
                     int flag = fcntl(client_fd, F_GETFL);
@@ -205,7 +206,7 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
     // 判断是否为GET 请求
     transform(method.begin(), method.end(), method.begin(), ::tolower);
     if (method == "get") {
-        string string_file = path.substr(1);
+        string string_file = UrlDecode(path.substr(1));
         // 判断请求的文件在不在
         //        fs::path dir(string_file);
         if (string_file.empty()) {
@@ -214,40 +215,69 @@ static void read_client_requests(int *epoll_fd, epoll_event *ev) {
                  << "/"
                  << " ] exists " << endl;
             string_file = "./";
-
-
-        } else if (fs::exists(string_file)) {
+        }
+        if (fs::exists(string_file)) {
             cout << "path [ " << string_file << " ] exists " << endl;
             if (fs::is_directory(string_file)) {
                 // 是一个目录
 
                 cout << "is a directory " << endl;
 
+                // 发送一个列表
+
+                send_http_headers(ev->data.fd, 200, string("OK"), get_mime_type("*.html"), 0);
+                // 发送 dir_header.html
+                send_file_requests(ev->data.fd, epoll_fd, ev, "dir_header.html", false);
+
+
+                vector<string> dirs;
+                string string_li;
+                if (fs::is_directory(string_file)) {
+                    for (fs::directory_entry entry: fs::directory_iterator(string_file)) {
+                        if (entry.is_directory()) {
+                            dirs.push_back(entry.path().filename().string() + "/");
+
+                        } else {
+                            dirs.push_back(entry.path().filename().string());
+                        }
+                    }
+                }
+                for (string li: dirs) {
+
+                    string_li = "<li><a href=\"" + li + "\">" + li + "</a></li>";
+                    send(ev->data.fd, string_li.c_str(), string_li.size(), 0);
+                    cout << string_li << endl;
+                    string_li.clear();
+                }
+
+                // 发送 dir_tail.html
+                send_file_requests(ev->data.fd, epoll_fd, ev, "dir_tail.html", true);
+
 
             } else {
                 // 是一个文件
-
                 cout << "is a file " << endl;
                 // 先发送报头 （状态行 消息头）
+                struct stat s;
+                stat(string_file.c_str(), &s);
+                send_http_headers(ev->data.fd, 200, string("OK"), get_mime_type(string_file), s.st_size);
                 // 发送文件
+                send_file_requests(ev->data.fd, epoll_fd, ev, string_file, false);
             }
 
 
         } else {
             cout << "path [ " << string_file << " ] not exists " << endl;
+            // 先发送报头 （状态行 消息头）
+            send_http_headers(ev->data.fd, 404, string("NOT FOUND"), get_mime_type("*.html"), 0);
             // 发送 error.html
+            send_file_requests(ev->data.fd, epoll_fd, ev, "error.html", false);
         }
     }
-
-
-    // 得到web请求的路径
-    // 判读文件是否存在 如果存在(普通文件 目录)
-
-    // 不存在发送 error.html
 }
 
 
-static void send_http_headers(int &cfd, const int &status_code, const string &info, const string &file_type, const int &length) {
+static void send_http_headers(int cfd, const int &status_code, const string &info, const string &file_type, const int &length) {
 
     // 发送状态行
     string buffer = "HTTP/1.1 " + to_string(status_code) + " " + info + "\r\n";
@@ -271,7 +301,7 @@ static void send_http_headers(int &cfd, const int &status_code, const string &in
 }
 
 
-static int send_file_requests(int cfd, int *epoll_fd, epoll_event *ev, const string &file_path) {
+static int send_file_requests(int cfd, int *epoll_fd, epoll_event *ev, const string &file_path, const bool &is_closed) {
 
     fstream files;
     files.open(file_path, ios_base::in);
@@ -292,12 +322,12 @@ static int send_file_requests(int cfd, int *epoll_fd, epoll_event *ev, const str
     files.close();
     // 关闭cfd 下树
 
+    if (is_closed) {
 
-    //对端关闭了连接，从epollfd上移除clientfd
-
-    epoll_ctl(*epoll_fd, EPOLL_CTL_DEL, ev->data.fd, ev);
-    close(ev->data.fd);
-    close(cfd);
+        close(cfd);
+        //对端关闭了连接，从epoll_fd上移除 client_fd
+        epoll_ctl(*epoll_fd, EPOLL_CTL_DEL, ev->data.fd, ev);
+    }
 
 
     return 0;
