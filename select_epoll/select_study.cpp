@@ -18,7 +18,7 @@ using namespace std;
 int main(int argc, char **argv) {
 
     // create socket and bind
-    int lfd = tcp4bind(port, "192.168.2.249");
+    int lfd = tcp4bind(port, "0.0.0.0");
 
     // listen
     Listen(lfd, 128);

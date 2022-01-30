@@ -4,4 +4,4 @@ set(PROJECT_NAME UNIXNetworkTest)
 set(CMAKE_CXX_STANDARD 17)
 
 project(${PROJECT_NAME})
-add_subdirectory(socket_study bin)
+add_subdirectory(udp_echo_server bin)
