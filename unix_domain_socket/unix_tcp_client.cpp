@@ -34,6 +34,8 @@ int main() {
     unix_address.sun_family = AF_UNIX;
     strcpy(unix_address.sun_path, sock_client_path);
 
+
+
     if (bind(sock_unix_fd, (sockaddr *) &unix_address, sizeof(unix_address)) < 0) {
 
         perror("bind error ");

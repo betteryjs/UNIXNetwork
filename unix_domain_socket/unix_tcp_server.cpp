@@ -19,8 +19,7 @@ const char sock_server_path[] = "sock.server";
 int main() {
 
 
-    unlink(sock_server_path);
-
+    unlink(sock_server_path);  // == remove
 
     // 创建套接字
     int sock_unix_fd = socket(AF_UNIX, SOCK_STREAM, 0);

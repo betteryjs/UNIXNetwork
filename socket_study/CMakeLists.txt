@@ -2,6 +2,7 @@ add_executable(tcp_client tcp_client.cpp)
 add_executable(tcp_server tcp_server.cpp)
 add_executable(tcp_process_server tcp_process_server.cpp wrap.cpp)
 add_executable(tcp_pthread_server tcp_pthread_server.cpp wrap.cpp)
-
-
+add_executable(datetime datetime.cpp)
+add_executable(daytimetcpsrv daytimetcpsrv.cpp)
+add_executable(test test.cpp)
 target_link_libraries(tcp_pthread_server pthread)

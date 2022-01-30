@@ -12,7 +12,6 @@
 
 const short SERVER_PORT = 8000;
 //const short CLIENT_PORT=8001;
-
 const int BUFFER_SIZE = 1500;
 using namespace std;
 
@@ -21,7 +20,9 @@ int main() {
 
     // 创建socket
     int sock_fd;
+
     sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
     // 绑定
     sockaddr_in server_address;
     server_address.sin_family = AF_INET;
@@ -32,11 +33,9 @@ int main() {
 
     int ret = bind(sock_fd, (sockaddr *) &server_address, sizeof(server_address));
     if (ret < 0) {
-
         perror("");
         return 0;
     }
-    //    char * buffer= (char *)malloc(sizeof(char)* BUFFER_SIZE);
     string send_string;
     sockaddr_in client_address;
     socklen_t client_address_len = sizeof(client_address);
@@ -47,9 +46,8 @@ int main() {
 
         // 读写
         memset(buffer, 0, sizeof(buffer));
-        //        char * buffer= (char *)malloc(sizeof(char)* BUFFER_SIZE);
-
         ssize_t n = recvfrom(sock_fd, buffer, BUFFER_SIZE, 0, (sockaddr *) &client_address, &client_address_len);
+        // 一直阻塞 直到client发来数据
 
         if (n < 0) {
 
@@ -63,17 +61,11 @@ int main() {
             sendto(sock_fd, send_string.c_str(), send_string.size(), 0, (sockaddr *) &client_address,
                    client_address_len);
             send_string.clear();
-            //            sendto(sock_fd,buffer, sizeof(buffer),0,(sockaddr * )&client_address,client_address_len);
-            //            free(buffer);
-            //            buffer=NULL;
         }
     }
 
-
     // 关闭
     close(sock_fd);
-
-    // udp
 
     return 0;
 }

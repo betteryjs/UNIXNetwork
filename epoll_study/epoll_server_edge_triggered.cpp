@@ -79,7 +79,8 @@ int main() {
 
                     // save client ip:port
                     //                    char ip[INET_ADDRSTRLEN]={0};
-                    char *ip = (char *) malloc(INET_ADDRSTRLEN);
+
+                    char *ip = (char *) malloc(sizeof(char )*INET_ADDRSTRLEN);
 
                     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                     cout << "new client connect . . . and ip is " << ip << " port is : " << ntohs(client_address.sin_port) << endl;
@@ -87,7 +88,6 @@ int main() {
                     cout << "epoll wait __ip_______________________________" << endl;
                     free(ip);
                     ip = nullptr;
-                    //                    memset(ip,1, sizeof(ip));
 
 
                     // 设置cfd为非阻塞

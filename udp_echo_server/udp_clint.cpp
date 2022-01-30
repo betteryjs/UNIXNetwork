@@ -10,8 +10,8 @@
 #include <unistd.h>
 
 
-const short SERVER_PORT = 8000;
-const short CLIENT_PORT = 8001;
+const unsigned short SERVER_PORT = 8000;
+const unsigned short CLIENT_PORT = 8001;
 const int BUFFER_SIZE = 1500;
 using namespace std;
 
@@ -74,7 +74,6 @@ int main() {
             // close
             //            close(sock_fd);
             cout << read_data << endl;
-            //                cout << read_data<<endl;
         }
     }
 

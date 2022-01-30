@@ -14,8 +14,10 @@
 using namespace std;
 
 const int BufferSize = 1500;
-const short Server_Port = 8000;
+const unsigned short Server_Port = 8000;
 const int Open_Max = 1024;
+const char SERVER_IP[]="0.0.0.0";
+
 
 
 int main(int argc, char **argv) {
@@ -30,13 +32,15 @@ int main(int argc, char **argv) {
     struct pollfd client[Open_Max];
     unordered_map<int, string> map;
 
-    listen_fd = tcp4bind(Server_Port, "192.168.2.249");
+    listen_fd = tcp4bind(Server_Port, SERVER_IP);
 
 
     Listen(listen_fd, 128);
 
+
     client[0].fd = listen_fd; // 要监听的第一个文件描述符 存入client[0]
     client[0].events = POLLIN;// 监听读事件
+
 
     for (int i = 1; i < Open_Max; ++i) {
         client[i].fd = -1;// 用-1初始化client[]里剩下元素
@@ -65,7 +69,6 @@ int main(int argc, char **argv) {
                 if (client[index].fd < 0) {
                     client[index].fd = conn_fd;// 找到client[]中的空闲位置 存放accept返回的的conn_fd
                     map[index] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
-
                     break;
                 }
             }

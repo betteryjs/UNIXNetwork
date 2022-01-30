@@ -202,6 +202,7 @@ int tcp4bind(short port, const char *IP) {
     }
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
+
     int opt = 1;
     setsockopt(lfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 

@@ -53,15 +53,15 @@ int main(int argc, char **argv) {
         perror("必须传入参数 . . .");
         exit(1);
     }
-
+    // 设置线程分离
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-
     int lfd = tcp4bind((short) atoi(argv[1]), "192.168.2.249");// 创建绑定 socket
-                                                               //    int opt=1;
-                                                               //    setsockopt(lfd,SOL_SOCKET,SO_REUSEADDR,&opt, sizeof(opt));
+    // 设置端口复用
+    int opt=1;
+    setsockopt(lfd,SOL_SOCKET,SO_REUSEADDR,&opt, sizeof(opt));
 
     Listen(lfd, 128);
     sockaddr_in client_address;

@@ -43,7 +43,6 @@ int main(int argc, char **argv) {
         } else if (n == 0) {
             continue;// 如果没有变化，重新监听
         } else {
-
             // 监听到了文件描述符号的变化
             // lfd 变化
             if (FD_ISSET(lfd, &r_set)) {
