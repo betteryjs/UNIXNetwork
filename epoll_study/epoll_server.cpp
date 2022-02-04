@@ -13,10 +13,9 @@
 
 using namespace std;
 
-
-const short Port = 8001;
+const short Port = 8000;
 const char *ServerIp = "127.0.0.1";
-const short EvsSize = 8000;
+const short EvsSize = 1024;
 const short BufferSize = 1500;
 const short EpollWaitTimeout = -1;
 
@@ -73,28 +72,28 @@ int main() {
                     inet_ntop(AF_INET, &client_address.sin_addr.s_addr, ip, 16);
                     cout << "new client connect . . . and ip is " << ip << " port is : " << ntohs(client_address.sin_port) << endl;
 
-
                     // save client ip:port
-                    map[client_fd] = string(ip) + ":" + to_string(ntohs(client_address.sin_port));
+                    map[client_fd] = string(ip) + ":" +
+                                     to_string(ntohs(client_address.sin_port));
                     // 将 client_fd  上树
                     ev.data.fd = client_fd;
                     ev.events = EPOLLIN;
                     epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &ev);
 
+                } else if (evs[i].events &
+                           EPOLLIN) { // cfd变化 并且是读事件变化
+                  ssize_t n;
+                  char buffer[BufferSize];
+                  memset(buffer, 0, sizeof(buffer));
 
-                } else if (evs[i].events & EPOLLIN) {// cfd变化 并且是读事件变化
-                    ssize_t n;
-                    char buffer[BufferSize];
-                    memset(buffer, 0, sizeof(buffer));
+                  if ((n = Read(evs[i].data.fd, buffer, BufferSize)) < 0) {
 
-                    if ((n = Read(evs[i].data.fd, buffer, BufferSize)) < 0) {
+                    perror("read error");
+                    epoll_ctl(epfd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
 
-                        perror("read error");
-                        epoll_ctl(epfd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
+                  } else if (n == 0) {
 
-                    } else if (n == 0) {
-
-                        cout << "client [ " << map[evs[i].data.fd] << " ] aborted connection" << endl;
+                    cout << "client [ " << map[evs[i].data.fd] << " ] aborted connection" << endl;
                         epoll_ctl(epfd, EPOLL_CTL_DEL, evs[i].data.fd, &evs[i]);
 
                     } else {

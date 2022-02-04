@@ -8,7 +8,6 @@
 // 4. read()
 // 5. close()
 
-
 #include <arpa/inet.h>
 #include <iostream>
 #include <cstring>
@@ -17,10 +16,9 @@
 
 using namespace std;
 
-
-const unsigned short SERVER_PORT=8000;
-const char SERVER_IP[]="0.0.0.0";
-int main(int argc,char** argv) {
+const unsigned short SERVER_PORT = 13;
+const char SERVER_IP[] = "139.199.215.251";
+int main(int argc, char **argv) {
 
   // 创建套接字
   int sock_fd;

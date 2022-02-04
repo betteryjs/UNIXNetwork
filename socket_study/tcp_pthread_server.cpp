@@ -69,19 +69,22 @@ int main(int argc, char **argv) {
 
     while (true) {
 
-        char ip[16] = "";
-        int res;
-        int cfd = Accept(lfd, (sockaddr *) &client_address, &len);
-        pthread_t pthread_id;
-        client_infos *client_info = new client_infos;
-        client_info->set_cfd(cfd);
-        client_info->set_client_address(client_address);
-        res = pthread_create(&pthread_id, &attr, client_callback, client_info);
-        if (res < 0) {
+      char ip[16] = "";
+      int res;
+      int cfd = Accept(lfd, (sockaddr *)&client_address, &len);
 
-            cerr << "pthread_create failed . . . " << endl;
-            exit(1);
-        }
+      // pthread start
+      pthread_t pthread_id;
+      client_infos *client_info = new client_infos;
+      client_info->set_cfd(cfd);
+      client_info->set_client_address(client_address);
+      res = pthread_create(&pthread_id, &attr, client_callback, client_info);
+      if (res < 0) {
+
+        cerr << "pthread_create failed . . . " << endl;
+        exit(1);
+      }
+      // pthread end
     }
     return 0;
 }
