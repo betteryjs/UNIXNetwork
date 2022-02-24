@@ -25,14 +25,14 @@ int main() {
 
     // 绑定
 
-    sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(CLIENT_PORT);
+    sockaddr_in client_address;
+    client_address.sin_family = AF_INET;
+    client_address.sin_port = htons(CLIENT_PORT);
     //    server_address.sin_addr.s_addr=inet_addr("127.0.0.1");
-    inet_pton(AF_INET, "127.0.0.1", &server_address.sin_addr.s_addr);
+    inet_pton(AF_INET, "127.0.0.1", &client_address.sin_addr.s_addr);
 
 
-    int ret = bind(sock_fd, (sockaddr *) &server_address, sizeof(server_address));
+    int ret = bind(sock_fd, (sockaddr *) &client_address, sizeof(client_address));
 
     if (ret < 0) {
         perror("bind error ");

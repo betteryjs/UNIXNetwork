@@ -4,4 +4,4 @@ set(PROJECT_NAME UNIXNetworkTest)
 set(CMAKE_CXX_STANDARD 17)
 
 project(${PROJECT_NAME})
-add_subdirectory(websocket bin)
+add_subdirectory(kcp-cpp bin)

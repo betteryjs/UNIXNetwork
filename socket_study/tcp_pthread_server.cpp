@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
       int res;
       int cfd = Accept(lfd, (sockaddr *)&client_address, &len);
 
-      // pthread start
+      /// pthread start
       pthread_t pthread_id;
       client_infos *client_info = new client_infos;
       client_info->set_cfd(cfd);
@@ -84,9 +84,11 @@ int main(int argc, char **argv) {
         cerr << "pthread_create failed . . . " << endl;
         exit(1);
       }
-      // pthread end
+      /// pthread end
+
+
     }
-    return 0;
+    exit(0);
 }
 
 void *client_callback(void *args) {

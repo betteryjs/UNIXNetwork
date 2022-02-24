@@ -36,6 +36,7 @@ struct sock_item {
   string recv_buffer{}; // 半包数据 全局存
   string send_buffer{};
   int status;
+  int slength=0;
 
   //  char recv_buffer[buffer_size]; //
   //  char send_buffer[buffer_size];
@@ -141,7 +142,7 @@ char *decode_packet(char *stream, char *mask, int length, int *ret) {
   return stream + start;
 }
 
-int encode_packet(char *buffer, char *mask, char *stream, int length) {
+int encode_packet(char *buffer,char *mask, char *stream, int length) {
 
   nty_ophdr head = {0};
   head.fin = 1;
@@ -158,7 +159,7 @@ int encode_packet(char *buffer, char *mask, char *stream, int length) {
     memcpy(hdr.mask_key, mask, 4);
 
     memcpy(buffer, &head, sizeof(nty_ophdr));
-    memcpy(buffer + sizeof(nty_ophdr), &hdr, sizeof(nty_websocket_head_126));
+    memcpy(buffer+sizeof(nty_ophdr), &hdr, sizeof(nty_websocket_head_126));
     size = sizeof(nty_websocket_head_126);
 
   } else {
@@ -168,12 +169,13 @@ int encode_packet(char *buffer, char *mask, char *stream, int length) {
     memcpy(hdr.mask_key, mask, 4);
 
     memcpy(buffer, &head, sizeof(nty_ophdr));
-    memcpy(buffer + sizeof(nty_ophdr), &hdr, sizeof(nty_websocket_head_127));
+    memcpy(buffer+sizeof(nty_ophdr), &hdr, sizeof(nty_websocket_head_127));
 
     size = sizeof(nty_websocket_head_127);
+
   }
 
-  memcpy(buffer + 2, stream, length);
+  memcpy(buffer+2, stream, length);
 
   return length + 2;
 }
@@ -185,11 +187,6 @@ int send_cb(int fd, int events, void *arg) {
   epoll_event ev;
   ev.events = EPOLLIN | EPOLLET;
   si->sock_fd = fd;
-
-  if (si->status == WS_HANDSHARK) {
-
-    si->status = WS_DATATRANSFORM;
-  }
 
   si->callback = recv_cb;
   ev.data.ptr = si;
@@ -214,6 +211,7 @@ int handshake(sock_item *si, shared_ptr<reactor> main_loop) {
   string linebuf = header_map["Sec-WebSocket-Key"];
   string sha1_data;
   string head;
+  head.clear();
 
   if (!header_map["Sec-WebSocket-Key"].empty()) {
 
@@ -255,8 +253,7 @@ int recv_cb(int fd, int events, void *arg) {
   char buffer[buffer_size];
   memset(buffer, 0, sizeof(buffer));
 
-  string str_buff;
-  str_buff.clear();
+
 
   int ret = recv(fd, buffer, buffer_size, 0);
 
@@ -323,21 +320,24 @@ int data_tranform(sock_item *si, shared_ptr<reactor> main_loop) {
   //  string s=decode_packet(&si->recv_buffer, mask, si->recv_buffer.size(),
   //  ret); cout <<" data : "<< s << " length :"<<ret<<endl;
 
-  char send_data[buffer_size];
-  ret = encode_packet(send_data, mask, data, ret);
 
-  si->send_buffer.clear();
-  si->send_buffer = string(send_data);
 
-  struct epoll_event ev;
-  ev.events = EPOLLOUT | EPOLLET;
-  // ev.data.fd = clientfd;
-  si->sock_fd = si->sock_fd;
-  si->callback = send_cb;
-  si->status = WS_DATATRANSFORM;
-  ev.data.ptr = si;
-
-  epoll_ctl(eventloop->epfd, EPOLL_CTL_MOD, si->sock_fd, &ev);
+//  char send_data[buffer_size];
+//  ret = encode_packet(send_data, mask, data, ret);
+//
+//  si->slength = ret;
+//  si->send_buffer.clear();
+//  si->send_buffer = string(send_data);
+//
+//  struct epoll_event ev;
+//  ev.events = EPOLLOUT | EPOLLET;
+//  // ev.data.fd = clientfd;
+//  si->sock_fd = si->sock_fd;
+//  si->callback = send_cb;
+//  si->status = WS_DATATRANSFORM;
+//  ev.data.ptr = si;
+////
+//  epoll_ctl(eventloop->epfd, EPOLL_CTL_MOD, si->sock_fd, &ev);
 
   return 0;
 }
@@ -382,8 +382,9 @@ static int set_nonblock(int fd) {
   if (flags < 0)
     return flags;
   flags |= O_NONBLOCK;
-  if (fcntl(fd, F_SETFL, flags) < 0)
+  if (fcntl(fd, F_SETFL, flags) < 0){
     return -1;
+  }
   return 0;
 }
 
@@ -402,9 +403,6 @@ int main(int argc, char **argv) {
 
   set_nonblock(listen_fd);
 
-  // 设置端口复用
-  int opt = 1;
-  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(struct sockaddr_in));
@@ -413,14 +411,18 @@ int main(int argc, char **argv) {
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = INADDR_ANY;
 
-  if (bind(listen_fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) <
+  if (bind(listen_fd, (struct sockaddr *)&addr, sizeof( sockaddr_in)) <
       0) {
     return 1;
   }
 
-  if (listen(listen_fd, 128) < 0) {
+  if (listen(listen_fd, 5) < 0) {
     return 1;
   }
+
+  // 设置端口复用
+  int opt = 1;
+  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
   // epoll opera
   eventloop = make_shared<reactor>();
@@ -446,7 +448,7 @@ int main(int argc, char **argv) {
       break;
     }
     int i = 0;
-    for (; i < nready; ++i) {
+    for (i=0; i < nready; ++i) {
 
       if (eventloop->events[i].events & EPOLLIN) {
         sock_item *si = (sock_item *)eventloop->events[i].data.ptr;
@@ -458,5 +460,6 @@ int main(int argc, char **argv) {
       }
     }
   }
+  close(listen_fd);
   return 0;
 }
